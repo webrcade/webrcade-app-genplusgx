@@ -1,0 +1,4 @@
+[submodule "modules/wasm-genplus"]
+	path = modules/wasm-genplus
+	url = https://github.com/raz0red/wasm-genplus.git
+	branch = webrcade
