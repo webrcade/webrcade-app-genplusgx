@@ -29,7 +29,7 @@ const CONTROLS = {
 }
 
 export class Emulator {
-  constructor() {
+  constructor(debug = false) {
     this.controllers = new Controllers([
       new Controller(new DefaultKeyCodeToControlMapping()),
       new Controller()
@@ -48,6 +48,7 @@ export class Emulator {
     this.displayLoop = null;
     this.visibilityMonitor = null;
     this.started = false;
+    this.debug = debug;
   }
 
   setRomBytes(bytes) {
@@ -162,7 +163,7 @@ export class Emulator {
 
     // Create loop and audio processor
     this.audioProcessor = new ScriptAudioProcessor();
-    this.displayLoop = new DisplayLoop(pal ? 50 : 60);
+    this.displayLoop = new DisplayLoop(pal ? 50 : 60, true);
 
     this.visibilityMonitor = new VisibilityChangeMonitor((p) => {
       this.displayLoop.pause(p);
@@ -199,20 +200,18 @@ export class Emulator {
     const canvasContext = this.canvasContext;
     const audioProcessor = this.audioProcessor;
 
-    //this.displayLoop.setDebug(true);
+    this.displayLoop.setDebug(this.debug);    
     this.displayLoop.start(() => {
-      // update
-      gens._tick();
-      // update controls
-      this.pollControls();
-
-      // draw
-      canvasData.set(this.vram);
+      canvasData.set(this.vram);      
       canvasContext.putImageData(this.canvasImageData, 0, 0);
-      // canvasContext.fillStyle = "#ffffff";
-      // canvasContext.fillText(this.displayLoop.getFps(), 5, canvas.height - 5);
+      if (this.debug) {        
+        canvasContext.fillStyle = "#ffffff";
+        canvasContext.font = ".75vw Quicksand";
+        canvasContext.fillText(this.displayLoop.getFps(), 5, canvas.height - 5);      
+      }
 
-      // sound
+      gens._tick();
+      this.pollControls();
       audioProcessor.storeSound(audioChannels, gens._sound());
     });
   }
