@@ -5,7 +5,7 @@ import './App.scss';
 import '@webrcade/app-common/dist/index.css'
 
 class App extends WebrcadeApp {
-  emulator = new Emulator();
+  emulator = new Emulator(this);
 
   componentDidMount() {
     super.componentDidMount();
@@ -24,7 +24,9 @@ class App extends WebrcadeApp {
       .then(blob => new Response(blob).arrayBuffer())
       .then(bytes => emulator.setRomBytes(bytes))
       .then(() => this.setState({mode: ModeEnum.LOADED}))
-      .catch(msg => console.error(msg))
+      .catch(msg => { 
+        this.exit("Error fetching ROM: " + msg);
+      })
   }  
 
   componentDidUpdate() {

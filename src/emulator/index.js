@@ -29,12 +29,13 @@ const CONTROLS = {
 }
 
 export class Emulator {
-  constructor(debug = false) {
+  constructor(app, debug = false) {
     this.controllers = new Controllers([
       new Controller(new DefaultKeyCodeToControlMapping()),
       new Controller()
     ]);
 
+    this.app = app;
     this.gens = null;
     this.romBytes = null;
     this.romdata = null;
@@ -52,11 +53,14 @@ export class Emulator {
   }
 
   setRomBytes(bytes) {
+    if (bytes.byteLength === 0) {
+      throw new Error("The size is invalid (0 bytes).");
+    }
     this.romBytes = bytes;
   }
 
   pollControls() {
-    const { controllers, input } = this;
+    const { controllers, input, app } = this;
 
     controllers.poll();
     for (let i = 0; i < 2; i++) {
@@ -98,12 +102,14 @@ export class Emulator {
         input[i] |= CONTROLS.INPUT_START;
       }
       if (controllers.isControlDown(i, CIDS.ESCAPE)) {
-        window.history.back();
+        app.exit();
       }
     }
   }
 
   loadEmscriptenModule() {
+    const { app } = this;
+
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       document.body.appendChild(script);
@@ -114,7 +120,10 @@ export class Emulator {
         if (esmodule) {
           esmodule()
             .then(gens => {
-              this.gens = gens; return gens;
+              this.gens = gens; 
+              gens.onAbort = msg => app.exit(msg);
+              gens.onExit = () => app.exit();              
+              return gens;
             })
             .then(gens => resolve(gens))
             .catch(error => reject(error));
