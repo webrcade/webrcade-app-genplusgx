@@ -20,7 +20,7 @@ class App extends WebrcadeApp {
     emulator.loadEmscriptenModule()
       .then(() => new FetchAppData(rom).fetch())
       .then(response => response.blob())
-      .then(blob => Unzip.unzip(blob, [".md", ".bin", ".gen", ".smd"]))
+      .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd"]))
       .then(blob => new Response(blob).arrayBuffer())
       .then(bytes => emulator.setRomBytes(bytes))
       .then(() => this.setState({mode: ModeEnum.LOADED}))
