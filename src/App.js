@@ -15,6 +15,9 @@ class App extends WebrcadeApp {
     // Get the ROM location that was specified
     const rom = appProps.rom;
     if (!rom) throw new Error("A ROM file was not specified.");
+    
+    const type = appProps.type;
+    if (!type) throw new Error("The application type was not specified.");
 
     // Load emscripten and the ROM
     emulator.loadEmscriptenModule()
@@ -22,7 +25,7 @@ class App extends WebrcadeApp {
       .then(response => response.blob())
       .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd"]))
       .then(blob => new Response(blob).arrayBuffer())
-      .then(bytes => emulator.setRomBytes(bytes))
+      .then(bytes => emulator.setRom(type, bytes))
       .then(() => this.setState({mode: ModeEnum.LOADED}))
       .catch(msg => { 
         this.exit("Error fetching ROM: " + msg);

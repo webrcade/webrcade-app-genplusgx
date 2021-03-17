@@ -36,6 +36,7 @@ export class Emulator {
     ]);
 
     this.app = app;
+    this.romType = null;
     this.gens = null;
     this.romBytes = null;
     this.romdata = null;
@@ -52,11 +53,12 @@ export class Emulator {
     this.debug = debug;
   }
 
-  setRomBytes(bytes) {
+  setRom(type, bytes) {
     if (bytes.byteLength === 0) {
       throw new Error("The size is invalid (0 bytes).");
     }
     this.romBytes = bytes;
+    this.romType = type;
   }
 
   pollControls() {
@@ -159,7 +161,7 @@ export class Emulator {
     this.romdata.set(new Uint8Array(romBytes));
 
     // init emulator
-    gens._init_genplus();
+    gens._init_genplus(this.romType === 'wasm-genplus-sms' ? 0x20 : 0x80);
 
     const pal = gens._is_pal(); // pal mode
     canvas.setAttribute('width', CANVAS_WIDTH);
