@@ -5,10 +5,15 @@ import './App.scss';
 import '@webrcade/app-common/dist/index.css'
 
 class App extends WebrcadeApp {
-  emulator = new Emulator(this);
+  emulator = null;
 
   componentDidMount() {
     super.componentDidMount();
+
+    // Create the emulator
+    if (this.emulator === null) {
+      this.emulator = new Emulator(this, this.isDebug());
+    }    
 
     const { appProps, emulator, ModeEnum } = this;    
 
