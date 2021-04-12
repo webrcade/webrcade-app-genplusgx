@@ -180,7 +180,9 @@ export class Emulator {
     this.romdata.set(new Uint8Array(romBytes));
 
     // init emulator
-    gens._init_genplus(this.romType === 'wasm-genplus-sms' ? 0x20 : 0x80);
+    gens._init_genplus(
+      this.romType === 'wasm-genplus-sms' ? 0x20 : 
+        this.romType === 'wasm-genplus-gg' ? 0x40 : 0x80);
 
     // Save state path
     this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
