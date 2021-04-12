@@ -1,4 +1,4 @@
-import { WebrcadeApp, FetchAppData, Unzip } from '@webrcade/app-common'
+import { WebrcadeApp, FetchAppData, Unzip, md5, blobToStr } from '@webrcade/app-common'
 import { Emulator } from './emulator'
 
 import './App.scss';
@@ -25,12 +25,17 @@ class App extends WebrcadeApp {
     if (!type) throw new Error("The application type was not specified.");
 
     // Load emscripten and the ROM
+    let romBlob = null;
+    let romMd5 = null;
     emulator.loadEmscriptenModule()
       .then(() => new FetchAppData(rom).fetch())
       .then(response => response.blob())
       .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd"]))
-      .then(blob => new Response(blob).arrayBuffer())
-      .then(bytes => emulator.setRom(type, bytes))
+      .then(blob => { romBlob = blob; return blob; })
+      .then(blob => blobToStr(romBlob))
+      .then(str => { romMd5 = md5(str); })
+      .then(() => new Response(romBlob).arrayBuffer())
+      .then(bytes => emulator.setRom(type, romMd5, bytes))
       .then(() => this.setState({mode: ModeEnum.LOADED}))
       .catch(msg => { 
         this.exit("Error fetching ROM: " + msg);
@@ -47,6 +52,16 @@ class App extends WebrcadeApp {
       emulator.start(canvas);
     }
   }  
+
+  async onPreExit() {
+    try {
+      await super.onPreExit();
+      await this.emulator.saveState();
+    } catch (e) {
+      // TODO: Proper logging
+      console.error(e);
+    }
+  }
 
   renderCanvas() {
     return (

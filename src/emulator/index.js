@@ -5,7 +5,8 @@ import {
   DefaultKeyCodeToControlMapping,
   DisplayLoop,
   ScriptAudioProcessor,
-  VisibilityChangeMonitor
+  VisibilityChangeMonitor,
+  Storage
 } from "@webrcade/app-common"
 
 const CANVAS_WIDTH = 320;
@@ -36,10 +37,12 @@ export class Emulator {
     ]);
 
     this.app = app;
+    this.storage = new Storage();
     this.romType = null;
     this.gens = null;
     this.romBytes = null;
     this.romdata = null;
+    this.romMd5 = null;
     this.vram = null;
     this.input = null;
     this.canvas = null;
@@ -48,17 +51,23 @@ export class Emulator {
     this.audioChannels = new Array(2);
     this.audioProcessor = null;
     this.displayLoop = null;
+    this.saveStatePath = null;
     this.visibilityMonitor = null;
-    this.started = false;
+    this.started = false;    
     this.debug = debug;
   }
 
-  setRom(type, bytes) {
+  SRAM_FILE = "/tmp/game.srm";
+
+  setRom(type, md5, bytes) {     
     if (bytes.byteLength === 0) {
       throw new Error("The size is invalid (0 bytes).");
     }
+    this.romMd5 = md5;
     this.romBytes = bytes;
     this.romType = type;
+
+    console.log("MD5: " + this.romMd5);
   }
 
   pollControls() {
@@ -115,6 +124,7 @@ export class Emulator {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       document.body.appendChild(script);
+
       script.src = 'genplus.js';
       script.async = true;
       script.onload = () => {
@@ -124,7 +134,7 @@ export class Emulator {
             .then(gens => {
               this.gens = gens; 
               gens.onAbort = msg => app.exit(msg);
-              gens.onExit = () => app.exit();              
+              gens.onExit = () => app.exit();   
               return gens;
             })
             .then(gens => resolve(gens))
@@ -136,8 +146,16 @@ export class Emulator {
     });
   }
 
-  start(canvas) {
-    const { gens, audioChannels, romBytes } = this;
+  async start(canvas) {
+    const { 
+      app, 
+      gens, 
+      audioChannels, 
+      romBytes, 
+      romMd5, 
+      storage,
+      SRAM_FILE,
+    } = this;
     this.canvas = canvas;
 
     if (this.started) return;
@@ -152,6 +170,7 @@ export class Emulator {
 
     // memory allocate
     gens._init();
+    const FS = window.FS;
 
     // Load the ROM
     this.romdata = new Uint8Array(
@@ -162,6 +181,27 @@ export class Emulator {
 
     // init emulator
     gens._init_genplus(this.romType === 'wasm-genplus-sms' ? 0x20 : 0x80);
+
+    // Save state path
+    this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
+
+    // Load the save state (if applicable)
+    try {
+      // Create the save path (MEM FS)
+      const res = FS.analyzePath(SRAM_FILE, true);
+      if (!res.exists) {
+        const s = await storage.get(this.saveStatePath);
+        if (s) {
+          FS.writeFile(SRAM_FILE, s);
+          if (gens._load_sram()) {
+            console.log('loaded sram.')
+          }
+        }
+      }
+    } catch (e) {
+      // TODO: Proper error handling
+      console.error(e);
+    }
 
     const pal = gens._is_pal(); // pal mode
     canvas.setAttribute('width', CANVAS_WIDTH);
@@ -218,5 +258,25 @@ export class Emulator {
       this.pollControls();
       audioProcessor.storeSound(audioChannels, gens._sound());
     });
+  }
+
+  async saveState() {
+    const { gens, started, saveStatePath, storage, SRAM_FILE } = this;
+    const FS = window.FS;
+
+    if (!started) {
+      return;
+    }
+
+    if (gens._save_sram()) {      
+      const res = FS.analyzePath(SRAM_FILE, true);
+      if (res.exists) {
+        const s = FS.readFile(SRAM_FILE);              
+        if (s) {
+          await storage.put(saveStatePath, s);
+          console.log('sram saved: ' + s.length)
+        }
+      }
+    }    
   }
 }
