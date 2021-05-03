@@ -1,8 +1,15 @@
-import { WebrcadeApp, FetchAppData, Unzip, md5, blobToStr } from '@webrcade/app-common'
+import { 
+  WebrcadeApp, 
+  FetchAppData, 
+  Unzip, 
+  md5, 
+  blobToStr, 
+  Resources, 
+  TEXT_IDS 
+} from '@webrcade/app-common'
 import { Emulator } from './emulator'
 
 import './App.scss';
-import '@webrcade/app-common/dist/index.css'
 
 class App extends WebrcadeApp {
   emulator = null;
@@ -13,34 +20,39 @@ class App extends WebrcadeApp {
     // Create the emulator
     if (this.emulator === null) {
       this.emulator = new Emulator(this, this.isDebug());
-    }    
+    }
 
-    const { appProps, emulator, ModeEnum } = this;    
+    const { appProps, emulator, ModeEnum } = this;
 
-    // Get the ROM location that was specified
-    const rom = appProps.rom;
-    if (!rom) throw new Error("A ROM file was not specified.");
-    
-    const type = appProps.type;
-    if (!type) throw new Error("The application type was not specified.");
+    try {
+      // Get the ROM location that was specified
+      const rom = appProps.rom;
+      if (!rom) throw new Error("A ROM file was not specified.");
 
-    // Load emscripten and the ROM
-    let romBlob = null;
-    let romMd5 = null;
-    emulator.loadEmscriptenModule()
-      .then(() => new FetchAppData(rom).fetch())
-      .then(response => response.blob())
-      .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd", ".sms", ".gg"]))
-      .then(blob => { romBlob = blob; return blob; })
-      .then(blob => blobToStr(blob))
-      .then(str => { romMd5 = md5(str); })
-      .then(() => new Response(romBlob).arrayBuffer())
-      .then(bytes => emulator.setRom(type, romMd5, bytes))
-      .then(() => this.setState({mode: ModeEnum.LOADED}))
-      .catch(msg => { 
-        this.exit("Error fetching ROM: " + msg);
-      })
-  }  
+      const type = appProps.type;
+      if (!type) throw new Error("The application type was not specified.");
+
+      // Load emscripten and the ROM
+      let romBlob = null;
+      let romMd5 = null;
+      emulator.loadEmscriptenModule()
+        .then(() => new FetchAppData(rom).fetch())
+        .then(response => response.blob())
+        .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd", ".sms", ".gg"]))
+        .then(blob => { romBlob = blob; return blob; })
+        .then(blob => blobToStr(blob))
+        .then(str => { romMd5 = md5(str); })
+        .then(() => new Response(romBlob).arrayBuffer())
+        .then(bytes => emulator.setRom(type, romMd5, bytes))
+        .then(() => this.setState({ mode: ModeEnum.LOADED }))
+        .catch(msg => {
+          console.error(msg); // TODO: Proper logging
+          this.exit(Resources.getText(TEXT_IDS.ERROR_RETRIEVING_GAME));
+        })
+    } catch (e) {
+      this.exit(e);
+    }
+  }
 
   componentDidUpdate() {
     const { mode } = this.state;
@@ -51,7 +63,7 @@ class App extends WebrcadeApp {
       // Start the emulator
       emulator.start(canvas);
     }
-  }  
+  }
 
   async onPreExit() {
     try {
@@ -65,8 +77,8 @@ class App extends WebrcadeApp {
 
   renderCanvas() {
     return (
-      <canvas 
-        ref={canvas => { this.canvas = canvas;}}          
+      <canvas
+        ref={canvas => { this.canvas = canvas; }}
         id="screen">
       </canvas>
     );
@@ -78,6 +90,7 @@ class App extends WebrcadeApp {
 
     return (
       <>
+        { super.render()}
         { mode === ModeEnum.LOADING ? this.renderLoading() : null}
         { mode === ModeEnum.LOADED ? this.renderCanvas() : null}
       </>
