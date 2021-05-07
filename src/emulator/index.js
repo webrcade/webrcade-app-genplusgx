@@ -53,13 +53,14 @@ export class Emulator {
     this.displayLoop = null;
     this.saveStatePath = null;
     this.visibilityMonitor = null;
-    this.started = false;    
+    this.started = false;
     this.debug = debug;
+    this.paused = false;
   }
 
   SRAM_FILE = "/tmp/game.srm";
 
-  setRom(type, md5, bytes) {     
+  setRom(type, md5, bytes) {
     if (bytes.byteLength === 0) {
       throw new Error("The size is invalid (0 bytes).");
     }
@@ -76,6 +77,22 @@ export class Emulator {
     controllers.poll();
     for (let i = 0; i < 2; i++) {
       input[i] = 0;
+
+      if (controllers.isControlDown(i, CIDS.ESCAPE)) {
+        if (this.pause(true)) {
+          controllers.waitUntilControlReleased(i, CIDS.ESCAPE)
+            .then(() => controllers.setEnabled(false))
+            .then(() => this.saveState())
+            .then(() => { app.pause(() => { 
+                controllers.setEnabled(true);
+                this.pause(false); 
+              }); 
+            })
+            .catch((e) => console.error(e))
+          return;
+        }
+      }
+
       if (controllers.isControlDown(i, CIDS.UP)) {
         input[i] |= CONTROLS.INPUT_UP;
       }
@@ -112,9 +129,6 @@ export class Emulator {
       if (controllers.isControlDown(i, CIDS.START)) {
         input[i] |= CONTROLS.INPUT_START;
       }
-      if (controllers.isControlDown(i, CIDS.ESCAPE)) {
-        app.exit();
-      }
     }
   }
 
@@ -132,9 +146,9 @@ export class Emulator {
         if (esmodule) {
           esmodule()
             .then(gens => {
-              this.gens = gens; 
+              this.gens = gens;
               gens.onAbort = msg => app.exit(msg);
-              gens.onExit = () => app.exit();   
+              gens.onExit = () => app.exit();
               return gens;
             })
             .then(gens => resolve(gens))
@@ -146,13 +160,23 @@ export class Emulator {
     });
   }
 
+  pause(p) {
+    if ((p && !this.paused) || (!p && this.paused)) {
+      this.paused = p;
+      this.displayLoop.pause(p);
+      this.audioProcessor.pause(p);
+      return true;
+    }
+    return false;
+  }
+
   async start(canvas) {
-    const { 
-      app, 
-      gens, 
-      audioChannels, 
-      romBytes, 
-      romMd5, 
+    const {
+      app,
+      gens,
+      audioChannels,
+      romBytes,
+      romMd5,
       storage,
       SRAM_FILE,
     } = this;
@@ -181,7 +205,7 @@ export class Emulator {
 
     // init emulator
     gens._init_genplus(
-      this.romType === 'wasm-genplus-sms' ? 0x20 : 
+      this.romType === 'wasm-genplus-sms' ? 0x20 :
         this.romType === 'wasm-genplus-gg' ? 0x40 : 0x80);
 
     // Save state path
@@ -207,7 +231,7 @@ export class Emulator {
 
     const pal = gens._is_pal(); // pal mode
     canvas.setAttribute('width', CANVAS_WIDTH);
-    canvas.setAttribute('height', 
+    canvas.setAttribute('height',
       pal ? CANVAS_HEIGHT_PAL : CANVAS_HEIGHT_NTSC);
     this.canvasContext = canvas.getContext('2d');
     this.canvasContext.clearRect(0, 0, canvas.width, canvas.height);
@@ -219,8 +243,9 @@ export class Emulator {
     this.displayLoop = new DisplayLoop(pal ? 50 : 60, true, this.debug);
 
     this.visibilityMonitor = new VisibilityChangeMonitor((p) => {
-      this.displayLoop.pause(p);
-      this.audioProcessor.pause(p);
+      if (!app.isPauseScreen()) {
+        this.pause(p);
+      }
     });
 
     // reset the emulator
@@ -254,7 +279,7 @@ export class Emulator {
     const audioProcessor = this.audioProcessor;
 
     this.displayLoop.start(() => {
-      canvasData.set(this.vram);      
+      canvasData.set(this.vram);
       canvasContext.putImageData(this.canvasImageData, 0, 0);
       gens._tick();
       this.pollControls();
@@ -270,15 +295,15 @@ export class Emulator {
       return;
     }
 
-    if (gens._save_sram()) {      
+    if (gens._save_sram()) {
       const res = FS.analyzePath(SRAM_FILE, true);
       if (res.exists) {
-        const s = FS.readFile(SRAM_FILE);              
+        const s = FS.readFile(SRAM_FILE);
         if (s) {
           await storage.put(saveStatePath, s);
           console.log('sram saved: ' + s.length)
         }
       }
-    }    
+    }
   }
 }

@@ -1,11 +1,11 @@
-import { 
-  WebrcadeApp, 
-  FetchAppData, 
-  Unzip, 
-  md5, 
-  blobToStr, 
-  Resources, 
-  TEXT_IDS 
+import {
+  WebrcadeApp,
+  FetchAppData,
+  Unzip,
+  md5,
+  blobToStr,
+  Resources,
+  TEXT_IDS
 } from '@webrcade/app-common'
 import { Emulator } from './emulator'
 
@@ -92,7 +92,8 @@ class App extends WebrcadeApp {
       <>
         { super.render()}
         { mode === ModeEnum.LOADING ? this.renderLoading() : null}
-        { mode === ModeEnum.LOADED ? this.renderCanvas() : null}
+        { mode === ModeEnum.PAUSE ? this.renderPauseScreen() : null}
+        { mode === ModeEnum.LOADED || mode === ModeEnum.PAUSE ? this.renderCanvas() : null}
       </>
     );
   }
