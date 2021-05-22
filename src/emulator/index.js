@@ -6,7 +6,8 @@ import {
   DisplayLoop,
   ScriptAudioProcessor,
   VisibilityChangeMonitor,
-  Storage
+  Storage,
+  hideInactiveMouse
 } from "@webrcade/app-common"
 
 const CANVAS_WIDTH = 320;
@@ -184,6 +185,8 @@ export class Emulator {
 
     if (this.started) return;
     this.started = true;
+
+    hideInactiveMouse(canvas);
 
     // Resize canvas based on emulator callback
     window.setCanvasSize = (w, h) => {
