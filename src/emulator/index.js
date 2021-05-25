@@ -1,13 +1,7 @@
 import {
   CIDS,
-  Controller,
-  Controllers,
-  DefaultKeyCodeToControlMapping,
   DisplayLoop,
-  ScriptAudioProcessor,
-  VisibilityChangeMonitor,
-  Storage,
-  hideInactiveMouse
+  AppWrapper
 } from "@webrcade/app-common"
 
 const CANVAS_WIDTH = 320;
@@ -30,15 +24,10 @@ const CONTROLS = {
   INPUT_UP: 0x0001
 }
 
-export class Emulator {
+export class Emulator extends AppWrapper {
   constructor(app, debug = false) {
-    this.controllers = new Controllers([
-      new Controller(new DefaultKeyCodeToControlMapping()),
-      new Controller()
-    ]);
+    super(app, debug);
 
-    this.app = app;
-    this.storage = new Storage();
     this.romType = null;
     this.gens = null;
     this.romBytes = null;
@@ -46,17 +35,10 @@ export class Emulator {
     this.romMd5 = null;
     this.vram = null;
     this.input = null;
-    this.canvas = null;
     this.canvasContext = null;
     this.canvasImageData = null;
     this.audioChannels = new Array(2);
-    this.audioProcessor = null;
-    this.displayLoop = null;
     this.saveStatePath = null;
-    this.visibilityMonitor = null;
-    this.started = false;
-    this.debug = debug;
-    this.paused = false;
   }
 
   SRAM_FILE = "/tmp/game.srm";
@@ -72,8 +54,12 @@ export class Emulator {
     console.log("MD5: " + this.romMd5);
   }
 
+  async onShowPauseMenu() {
+    await this.saveState();
+  }
+
   pollControls() {
-    const { controllers, input, app } = this;
+    const { controllers, input } = this;
 
     controllers.poll();
     for (let i = 0; i < 2; i++) {
@@ -82,14 +68,7 @@ export class Emulator {
       if (controllers.isControlDown(i, CIDS.ESCAPE)) {
         if (this.pause(true)) {
           controllers.waitUntilControlReleased(i, CIDS.ESCAPE)
-            .then(() => controllers.setEnabled(false))
-            .then(() => this.saveState())
-            .then(() => { app.pause(() => { 
-                controllers.setEnabled(true);
-                this.pause(false); 
-              }); 
-            })
-            .catch((e) => console.error(e))
+            .then(() => this.showPauseMenu());
           return;
         }
       }
@@ -161,32 +140,8 @@ export class Emulator {
     });
   }
 
-  pause(p) {
-    if ((p && !this.paused) || (!p && this.paused)) {
-      this.paused = p;
-      this.displayLoop.pause(p);
-      this.audioProcessor.pause(p);
-      return true;
-    }
-    return false;
-  }
-
-  async start(canvas) {
-    const {
-      app,
-      gens,
-      audioChannels,
-      romBytes,
-      romMd5,
-      storage,
-      SRAM_FILE,
-    } = this;
-    this.canvas = canvas;
-
-    if (this.started) return;
-    this.started = true;
-
-    hideInactiveMouse(canvas);
+  async onStart(canvas) {
+    const { app, gens, audioChannels, romBytes, romMd5 } = this;
 
     // Resize canvas based on emulator callback
     window.setCanvasSize = (w, h) => {
@@ -197,7 +152,6 @@ export class Emulator {
 
     // memory allocate
     gens._init();
-    const FS = window.FS;
 
     // Load the ROM
     this.romdata = new Uint8Array(
@@ -211,28 +165,12 @@ export class Emulator {
       this.romType === 'wasm-genplus-sms' ? 0x20 :
         this.romType === 'wasm-genplus-gg' ? 0x40 : 0x80);
 
-    // Save state path
+    // Load saved state (if applicable)
     this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
+    await this.loadState();
 
-    // Load the save state (if applicable)
-    try {
-      // Create the save path (MEM FS)
-      const res = FS.analyzePath(SRAM_FILE, true);
-      if (!res.exists) {
-        const s = await storage.get(this.saveStatePath);
-        if (s) {
-          FS.writeFile(SRAM_FILE, s);
-          if (gens._load_sram()) {
-            console.log('loaded sram.')
-          }
-        }
-      }
-    } catch (e) {
-      // TODO: Proper error handling
-      console.error(e);
-    }
-
-    const pal = gens._is_pal(); // pal mode
+    // Determine PAL mode
+    const pal = gens._is_pal();
     canvas.setAttribute('width', CANVAS_WIDTH);
     canvas.setAttribute('height',
       pal ? CANVAS_HEIGHT_PAL : CANVAS_HEIGHT_NTSC);
@@ -241,15 +179,8 @@ export class Emulator {
     this.canvasImageData = this.canvasContext.createImageData(
       canvas.width, canvas.height);
 
-    // Create loop and audio processor
-    this.audioProcessor = new ScriptAudioProcessor();
+    // Create display loop    
     this.displayLoop = new DisplayLoop(pal ? 50 : 60, true, this.debug);
-
-    this.visibilityMonitor = new VisibilityChangeMonitor((p) => {
-      if (!app.isPauseScreen()) {
-        this.pause(p);
-      }
-    });
 
     // reset the emulator
     gens._reset();
@@ -273,7 +204,7 @@ export class Emulator {
     this.input = new Uint16Array(
       gens.HEAPU16.buffer, gens._get_input_buffer_ref(), GAMEPAD_API_INDEX);
 
-    // audio
+    // start audio processor
     this.audioProcessor.start();
 
     // game loop
@@ -281,6 +212,7 @@ export class Emulator {
     const canvasContext = this.canvasContext;
     const audioProcessor = this.audioProcessor;
 
+    // Start the display loop
     this.displayLoop.start(() => {
       canvasData.set(this.vram);
       canvasContext.putImageData(this.canvasImageData, 0, 0);
@@ -288,6 +220,28 @@ export class Emulator {
       this.pollControls();
       audioProcessor.storeSound(audioChannels, gens._sound());
     });
+  }
+
+  async loadState() {
+    const { gens, storage, SRAM_FILE } = this;
+    const FS = window.FS;
+
+    try {
+      // Create the save path (MEM FS)
+      const res = FS.analyzePath(SRAM_FILE, true);
+      if (!res.exists) {
+        const s = await storage.get(this.saveStatePath);
+        if (s) {
+          FS.writeFile(SRAM_FILE, s);
+          if (gens._load_sram()) {
+            console.log('loaded sram.')
+          }
+        }
+      }
+    } catch (e) {
+      // TODO: Proper error handling
+      console.error(e);
+    }
   }
 
   async saveState() {
