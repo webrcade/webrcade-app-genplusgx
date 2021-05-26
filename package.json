@@ -1,5 +1,5 @@
 {
-  "name": "@webrcade/app-wasm-genplus",
+  "name": "@webrcade/app-genplusgx",
   "version": "0.1.0",
   "homepage": ".",
   "private": true,

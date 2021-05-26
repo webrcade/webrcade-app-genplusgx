@@ -1,1 +1,1 @@
-# webЯcade WASM GenPlus
+# webЯcade genplusgx
