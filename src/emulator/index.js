@@ -162,8 +162,8 @@ export class Emulator extends AppWrapper {
 
     // init emulator
     gens._init_genplus(
-      this.romType === 'wasm-genplus-sms' ? 0x20 :
-        this.romType === 'wasm-genplus-gg' ? 0x40 : 0x80);
+      this.romType === 'genplusgx-sms' ? 0x20 :
+        this.romType === 'genplusgx-gg' ? 0x40 : 0x80);
 
     // Load saved state (if applicable)
     this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
