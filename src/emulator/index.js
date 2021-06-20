@@ -1,7 +1,8 @@
-import {
-  CIDS,
+import {  
+  AppWrapper,
   DisplayLoop,
-  AppWrapper
+  LOG,
+  CIDS  
 } from "@webrcade/app-common"
 
 const CANVAS_WIDTH = 320;
@@ -51,7 +52,7 @@ export class Emulator extends AppWrapper {
     this.romBytes = bytes;
     this.romType = type;
 
-    console.log("MD5: " + this.romMd5);
+    LOG.info("MD5: " + this.romMd5);
   }
 
   async onShowPauseMenu() {
@@ -141,11 +142,11 @@ export class Emulator extends AppWrapper {
   }
 
   async onStart(canvas) {
-    const { app, gens, audioChannels, romBytes, romMd5 } = this;
+    const { app, audioChannels, gens, romBytes, romMd5 } = this;
 
     // Resize canvas based on emulator callback
     window.setCanvasSize = (w, h) => {
-      console.log(`width: ${w}, height: ${h}`);
+      LOG.info(`width: ${w}, height: ${h}`);
       canvas.setAttribute('width', w);
       canvas.setAttribute('height', h);
     };
@@ -234,18 +235,17 @@ export class Emulator extends AppWrapper {
         if (s) {
           FS.writeFile(SRAM_FILE, s);
           if (gens._load_sram()) {
-            console.log('loaded sram.')
+            LOG.info('loaded sram.')
           }
         }
       }
     } catch (e) {
-      // TODO: Proper error handling
-      console.error(e);
+      LOG.error(e);
     }
   }
 
   async saveState() {
-    const { gens, started, saveStatePath, storage, SRAM_FILE } = this;
+    const { gens, saveStatePath, started, storage, SRAM_FILE } = this;
     const FS = window.FS;
 
     if (!started) {
@@ -258,7 +258,7 @@ export class Emulator extends AppWrapper {
         const s = FS.readFile(SRAM_FILE);
         if (s) {
           await storage.put(saveStatePath, s);
-          console.log('sram saved: ' + s.length)
+          LOG.info('sram saved: ' + s.length)
         }
       }
     }
