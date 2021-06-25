@@ -40,17 +40,21 @@ export class Emulator extends AppWrapper {
     this.canvasImageData = null;
     this.audioChannels = new Array(2);
     this.saveStatePath = null;
+    this.pal = null;
+    this.ym2413 = null;
   }
 
   SRAM_FILE = "/tmp/game.srm";
 
-  setRom(type, md5, bytes) {
+  setRom(type, md5, bytes, pal, ym2413) {
     if (bytes.byteLength === 0) {
       throw new Error("The size is invalid (0 bytes).");
     }
     this.romMd5 = md5;
     this.romBytes = bytes;
     this.romType = type;
+    this.pal = pal;
+    this.ym2413 = ym2413;
 
     LOG.info("MD5: " + this.romMd5);
   }
@@ -164,7 +168,9 @@ export class Emulator extends AppWrapper {
     // init emulator
     gens._init_genplus(
       this.romType === 'genplusgx-sms' ? 0x20 :
-        this.romType === 'genplusgx-gg' ? 0x40 : 0x80);
+        this.romType === 'genplusgx-gg' ? 0x40 : 0x80,
+      this.pal === true ? 2 : -1, /* Region */
+      this.ym2413 === true ? 1 : -1  /* YM2413*/ );
 
     // Load saved state (if applicable)
     this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);

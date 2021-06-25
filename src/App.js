@@ -33,6 +33,9 @@ class App extends WebrcadeApp {
       const type = appProps.type;
       if (!type) throw new Error("The application type was not specified.");
 
+      const pal = appProps.pal !== undefined ? appProps.pal === true : null;
+      const ym2413 = appProps.ym2413 !== undefined ? appProps.ym2413 === true : null;
+
       // Load emscripten and the ROM
       let romBlob = null;
       let romMd5 = null;
@@ -44,7 +47,7 @@ class App extends WebrcadeApp {
         .then(blob => blobToStr(blob))
         .then(str => { romMd5 = md5(str); })
         .then(() => new Response(romBlob).arrayBuffer())
-        .then(bytes => emulator.setRom(type, romMd5, bytes))
+        .then(bytes => emulator.setRom(type, romMd5, bytes, pal, ym2413))
         .then(() => this.setState({ mode: ModeEnum.LOADED }))
         .catch(msg => {
           LOG.error(msg);
