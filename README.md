@@ -1,13 +1,11 @@
-# webЯcade Applications: Sega Genesis/Master System/Game Gear Emulators
+# webЯcade Applications: Sega Genesis, Master System, Game Gear Emulators
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 This repository contains [webЯcade](https://www.webrcade.com) applications for the following Sega systems:
 
 * [Sega Genesis](#sega-genesis-application)
-
 * [Sega Master System](#sega-master-system-application)
-
 * [Sega Game Gear](#sega-game-gear-application)
 
 The underlying emulators are a [forked version](https://github.com/raz0red/wasm-genplus/tree/webrcade) of [wasm-genplus](https://github.com/h1romas4/wasm-genplus) by hiromasa. Wasm-genplus is an Emscripten port of [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) by eke-eke. Genesis Plus Gx is a heavily modified and updated version of Genesis Plus 1.2a by Charles MacDonald.
