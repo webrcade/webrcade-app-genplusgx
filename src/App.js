@@ -43,7 +43,7 @@ class App extends WebrcadeApp {
       emulator.loadEmscriptenModule()
         .then(() => new FetchAppData(rom).fetch())
         .then(response => response.blob())
-        .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd", ".sms", ".gg"]))
+        .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd", ".sms", ".gg", ".sg"]))
         .then(blob => { romBlob = blob; return blob; })
         .then(blob => blobToStr(blob))
         .then(str => { romMd5 = md5(str); })
