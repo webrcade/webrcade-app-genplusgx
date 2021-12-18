@@ -43,11 +43,12 @@ export class Emulator extends AppWrapper {
     this.pal = null;
     this.ym2413 = null;
     this.sms2 = null;
+    this.pad3button = false;
   }
 
   SRAM_FILE = "/tmp/game.srm";
 
-  setRom(type, md5, bytes, pal, ym2413, sms2) {
+  setRom(type, md5, bytes, pal, ym2413, sms2, pad3button) {
     if (bytes.byteLength === 0) {
       throw new Error("The size is invalid (0 bytes).");
     }
@@ -57,6 +58,7 @@ export class Emulator extends AppWrapper {
     this.pal = pal;
     this.ym2413 = ym2413;
     this.sms2 = sms2;
+    this.pad3button = pad3button;
 
     LOG.info("MD5: " + this.romMd5);
   }
@@ -173,7 +175,8 @@ export class Emulator extends AppWrapper {
         (this.sms2 === true ? 0x21 : 0x20) :
         (this.romType === 'genplusgx-gg' ? 0x40 : 0x80),
       this.pal === true ? 2 : -1, /* Region */
-      this.ym2413 === true ? 1 : -1  /* YM2413*/ );
+      this.ym2413 === true ? 1 : -1  /* YM2413*/,
+      this.pad3button === true ? 1 : -1 /* Force 3 button (genesis) */ );
 
     // Load saved state (if applicable)
     this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
