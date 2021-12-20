@@ -1,10 +1,13 @@
 import {
   blobToStr,
   md5,  
+  romNameScorer,
+  AppRegistry,
   FetchAppData,
   Resources,
   Unzip,
   WebrcadeApp,
+  APP_TYPE_KEYS,
   LOG,  
   TEXT_IDS
 } from '@webrcade/app-common'
@@ -38,13 +41,30 @@ class App extends WebrcadeApp {
       const sms2 = appProps.sms2 !== undefined ? appProps.sms2 === true : null;
       const pad3button = appProps.pad3button !== undefined && appProps.pad3button === true;
 
+      // Determine extensions
+      const exts = [
+        ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_MD, true, false),
+        ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_GG, true, false),
+        ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SMS, true, false),
+      ];
+      const extsNotUnique = [
+        ...new Set([
+          ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_MD, true, true),
+          ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_GG, true, true),
+          ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SMS, true, true)
+        ])
+      ];
+
+      console.log(exts);
+      console.log(extsNotUnique);
+
       // Load emscripten and the ROM
       let romBlob = null;
       let romMd5 = null;
       emulator.loadEmscriptenModule()
         .then(() => new FetchAppData(rom).fetch())
         .then(response => response.blob())
-        .then(blob => new Unzip().unzip(blob, [".md", ".bin", ".gen", ".smd", ".sms", ".gg", ".sg"]))
+        .then(blob => new Unzip().unzip(blob, extsNotUnique, exts, romNameScorer))
         .then(blob => { romBlob = blob; return blob; })
         .then(blob => blobToStr(blob))
         .then(str => { romMd5 = md5(str); })
