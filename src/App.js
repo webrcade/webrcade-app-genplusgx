@@ -55,16 +55,13 @@ class App extends WebrcadeApp {
         ])
       ];
 
-      console.log(exts);
-      console.log(extsNotUnique);
-
       // Load emscripten and the ROM
       let romBlob = null;
       let romMd5 = null;
       emulator.loadEmscriptenModule()
         .then(() => new FetchAppData(rom).fetch())
         .then(response => response.blob())
-        .then(blob => new Unzip().unzip(blob, extsNotUnique, exts, romNameScorer))
+        .then(blob => new Unzip().setDebug(this.isDebug()).unzip(blob, extsNotUnique, exts, romNameScorer))
         .then(blob => { romBlob = blob; return blob; })
         .then(blob => blobToStr(blob))
         .then(str => { romMd5 = md5(str); })
