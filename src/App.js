@@ -38,7 +38,7 @@ class App extends WebrcadeApp {
 
       const pal = appProps.pal !== undefined ? appProps.pal === true : null;
       const ym2413 = appProps.ym2413 !== undefined ? appProps.ym2413 === true : null;
-      const sms2 = appProps.sms2 !== undefined ? appProps.sms2 === true : null;
+      const smsHwType = appProps.hwType !== undefined ? appProps.hwType : 0;
       const pad3button = appProps.pad3button !== undefined && appProps.pad3button === true;
 
       // Determine extensions
@@ -58,15 +58,16 @@ class App extends WebrcadeApp {
       // Load emscripten and the ROM
       let romBlob = null;
       let romMd5 = null;
+      const unzip = new Unzip().setDebug(this.isDebug());
       emulator.loadEmscriptenModule()
         .then(() => new FetchAppData(rom).fetch())
         .then(response => response.blob())
-        .then(blob => new Unzip().setDebug(this.isDebug()).unzip(blob, extsNotUnique, exts, romNameScorer))
-        .then(blob => { romBlob = blob; return blob; })
+        .then(blob => unzip.unzip(blob, extsNotUnique, exts, romNameScorer))
+        .then(blob => {  romBlob = blob; return blob; })
         .then(blob => blobToStr(blob))
         .then(str => { romMd5 = md5(str); })
         .then(() => new Response(romBlob).arrayBuffer())
-        .then(bytes => emulator.setRom(type, romMd5, bytes, pal, ym2413, sms2, pad3button))
+        .then(bytes => emulator.setRom(type, romMd5, bytes, pal, ym2413, smsHwType, pad3button))
         .then(() => this.setState({ mode: ModeEnum.LOADED }))
         .catch(msg => {
           LOG.error(msg);
