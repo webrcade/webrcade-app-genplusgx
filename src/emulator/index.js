@@ -181,8 +181,9 @@ export class Emulator extends AppWrapper {
 
     // init emulator
     gens._init_genplus(
-      this.romType === 'genplusgx-sms' ? smsHw :
-        (this.romType === 'genplusgx-gg' ? 0x40 : 0x80),
+      this.romType === 'genplusgx-sg' ? 0x10 : (
+        (this.romType === 'genplusgx-sms' ? smsHw :
+          (this.romType === 'genplusgx-gg' ? 0x40 : 0x80))),
       this.pal === true ? 2 : -1, /* Region */
       this.ym2413 === true ? 1 : -1  /* YM2413*/,
       this.pad3button === true ? 1 : -1 /* Force 3 button (genesis) */ );

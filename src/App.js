@@ -46,12 +46,14 @@ class App extends WebrcadeApp {
         ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_MD, true, false),
         ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_GG, true, false),
         ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SMS, true, false),
+        ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SG, true, false),
       ];
       const extsNotUnique = [
         ...new Set([
           ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_MD, true, true),
           ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_GG, true, true),
-          ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SMS, true, true)
+          ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SMS, true, true),
+          ...AppRegistry.instance.getExtensions(APP_TYPE_KEYS.GENPLUSGX_SG, true, true),
         ])
       ];
 
