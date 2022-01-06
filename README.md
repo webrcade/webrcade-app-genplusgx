@@ -1,4 +1,4 @@
-# webЯcade Applications: Sega Genesis, Master System, Game Gear Emulators
+# webЯcade Applications: Sega Genesis, Master System, SG-1000, Game Gear Emulators
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -6,6 +6,7 @@ This repository contains [webЯcade](https://www.webrcade.com) applications for 
 
 * [Sega Genesis](#sega-genesis-application)
 * [Sega Master System](#sega-master-system-application)
+* [Sega SG-1000](#sega-sg-1000-application)
 * [Sega Game Gear](#sega-game-gear-application)
 
 The underlying emulators are a [forked version](https://github.com/raz0red/wasm-genplus/tree/webrcade) of [wasm-genplus](https://github.com/h1romas4/wasm-genplus) by hiromasa. Wasm-genplus is an Emscripten port of [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) by eke-eke. Genesis Plus Gx is a heavily modified and updated version of Genesis Plus 1.2a by Charles MacDonald.
@@ -41,6 +42,22 @@ The Sega Master System application for [webЯcade](https://www.webrcade.com) is 
 ### Documentation
 
 The [Sega Master System Application Documentation](https://docs.webrcade.com/apps/emulators/mastersystem/) includes [keyboard](https://docs.webrcade.com/apps/emulators/mastersystem/#keyboard) and [gamepad](https://docs.webrcade.com/apps/emulators/mastersystem/#gamepad) control mappings, information related to [battery-backed SRAM](https://docs.webrcade.com/apps/emulators/mastersystem/#battery-backed-sram) support, and details regarding the use of the emulator within a [webЯcade feed](https://docs.webrcade.com/apps/emulators/mastersystem/#feed). 
+
+## Sega SG-1000 Application
+
+The Sega SG-1000 application for [webЯcade](https://www.webrcade.com) is an emulator for the [Sega SG-1000 game console](https://en.wikipedia.org/wiki/SG-1000).
+
+<p align="center">
+ <a href="https://play.webrcade.com">
+  <img src="https://docs.webrcade.com/assets/images/apps/sg1000.png" width="90%">
+ </a>
+ <br>
+ <i>Cheril Perils Classic by Mojon Twins</i>
+</p>
+
+### Documentation
+
+The [Sega SG-1000 Application Documentation](https://docs.webrcade.com/apps/emulators/sg1000/) includes [keyboard](https://docs.webrcade.com/apps/emulators/sg1000/#keyboard) and [gamepad](https://docs.webrcade.com/apps/emulators/sg1000/#gamepad) control mappings, and details regarding the use of the emulator within a [webЯcade feed](https://docs.webrcade.com/apps/emulators/sg1000/#feed). 
  
 ## Sega Game Gear Application
 
