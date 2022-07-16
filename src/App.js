@@ -1,14 +1,15 @@
 import {
   blobToStr,
-  md5,  
+  md5,
   romNameScorer,
+  settings,
   AppRegistry,
   FetchAppData,
   Resources,
   Unzip,
   WebrcadeApp,
   APP_TYPE_KEYS,
-  LOG,  
+  LOG,
   TEXT_IDS
 } from '@webrcade/app-common'
 import { Emulator } from './emulator'
@@ -62,6 +63,8 @@ class App extends WebrcadeApp {
       let romMd5 = null;
       const unzip = new Unzip().setDebug(this.isDebug());
       emulator.loadEmscriptenModule()
+        .then(() => settings.load())
+        // .then(() => settings.setBilinearFilterEnabled(true))
         .then(() => new FetchAppData(rom).fetch())
         .then(response => response.blob())
         .then(blob => unzip.unzip(blob, extsNotUnique, exts, romNameScorer))
@@ -103,6 +106,7 @@ class App extends WebrcadeApp {
   renderCanvas() {
     return (
       <canvas
+        style={this.getCanvasStyles()}
         ref={canvas => { this.canvas = canvas; }}
         id="screen">
       </canvas>
