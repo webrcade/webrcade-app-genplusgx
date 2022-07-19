@@ -1,8 +1,8 @@
-import {  
+import {
   AppWrapper,
   DisplayLoop,
   LOG,
-  CIDS  
+  CIDS
 } from "@webrcade/app-common"
 
 const CANVAS_WIDTH = 320;
@@ -171,7 +171,7 @@ export class Emulator extends AppWrapper {
 
     // Determine the SMS hardware type
     const smsHw = (
-      smsHwType === 0 ? 0x21 : 
+      smsHwType === 0 ? 0x21 :
         smsHwType === 1 ? 0x20 : 0x10
     );
 
@@ -202,7 +202,7 @@ export class Emulator extends AppWrapper {
     this.canvasImageData = this.canvasContext.createImageData(
       canvas.width, canvas.height);
 
-    // Create display loop    
+    // Create display loop
     this.displayLoop = new DisplayLoop(pal ? 50 : 60, true, this.debug);
 
     // reset the emulator
