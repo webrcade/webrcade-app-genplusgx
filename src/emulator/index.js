@@ -47,6 +47,7 @@ export class Emulator extends AppWrapper {
   }
 
   SRAM_FILE = "/tmp/game.srm";
+  SAVE_NAME = 'sav';
 
   setRom(type, md5, bytes, pal, ym2413, smsHwType, pad3button) {
     if (bytes.byteLength === 0) {
@@ -150,7 +151,7 @@ export class Emulator extends AppWrapper {
   }
 
   async onStart(canvas) {
-    const { app, audioChannels, gens, romBytes, romMd5, smsHwType } = this;
+    const { app, audioChannels, gens, romBytes, romMd5, smsHwType, SAVE_NAME } = this;
 
     // Resize canvas based on emulator callback
     window.setCanvasSize = (w, h) => {
@@ -189,7 +190,7 @@ export class Emulator extends AppWrapper {
       this.pad3button === true ? 1 : -1 /* Force 3 button (genesis) */ );
 
     // Load saved state (if applicable)
-    this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
+    this.saveStatePath = app.getStoragePath(`${romMd5}/${SAVE_NAME}`);
     await this.loadState();
 
     // Determine PAL mode
@@ -245,15 +246,55 @@ export class Emulator extends AppWrapper {
     });
   }
 
+  async migrateSaves() {
+    const { saveStatePath, storage, SAVE_NAME } = this;
+
+    // Load old saves (if applicable)
+    const sram = await storage.get(saveStatePath);
+    if (sram) {
+      LOG.info('Migrating local saves.');
+
+      await this.getSaveManager().saveLocal(saveStatePath, [
+        {
+          name: SAVE_NAME,
+          content: sram,
+        },
+      ]);
+
+      // Delete old location (and info)
+      await storage.remove(saveStatePath);
+      await storage.remove(`${saveStatePath}/info`);
+    }
+  }
+
   async loadState() {
-    const { gens, storage, SRAM_FILE } = this;
+    const { gens, saveStatePath, SAVE_NAME, SRAM_FILE } = this;
     const FS = window.FS;
 
     try {
+      // Migrate old save format
+      await this.migrateSaves();
+
       // Create the save path (MEM FS)
       const res = FS.analyzePath(SRAM_FILE, true);
       if (!res.exists) {
-        const s = await storage.get(this.saveStatePath);
+        // Load from new save format
+        const files = await this.getSaveManager().load(
+          saveStatePath,
+          this.loadMessageCallback,
+        );
+
+        let s = null;
+        if (files) {
+          for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            if (f.name === SAVE_NAME) {
+              s = f.content;
+              break;
+            }
+          }
+        }
+
         if (s) {
           FS.writeFile(SRAM_FILE, s);
           if (gens._load_sram()) {
@@ -266,8 +307,14 @@ export class Emulator extends AppWrapper {
     }
   }
 
+  async saveInOldFormat(s) {
+    const { saveStatePath } = this;
+    // old, for testing migration
+    await this.saveStateToStorage(saveStatePath, s);
+  }
+
   async saveState() {
-    const { gens, saveStatePath, started, SRAM_FILE } = this;
+    const { gens, saveStatePath, started, SAVE_NAME, SRAM_FILE } = this;
     const FS = window.FS;
 
     if (!started) {
@@ -279,7 +326,18 @@ export class Emulator extends AppWrapper {
       if (res.exists) {
         const s = FS.readFile(SRAM_FILE);
         if (s) {
-          await this.saveStateToStorage(saveStatePath, s);
+          // await this.saveInOldFormat(s);
+          await this.getSaveManager().save(
+            saveStatePath,
+            [
+              {
+                name: SAVE_NAME,
+                content: s,
+              },
+            ],
+            this.saveMessageCallback,
+          );
+
           LOG.info('sram saved: ' + s.length)
         }
       }
