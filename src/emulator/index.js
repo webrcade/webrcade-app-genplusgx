@@ -247,6 +247,9 @@ export class Emulator extends AppWrapper {
     const canvasContext = this.canvasContext;
     const audioProcessor = this.audioProcessor;
 
+    // Enable show message
+    this.setShowMessageEnabled(true);
+
     // Start the display loop
     this.displayLoop.start(() => {
       canvasData.set(this.vram);
