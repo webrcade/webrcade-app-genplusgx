@@ -307,6 +307,8 @@ export class Emulator extends AppWrapper {
               break;
             }
           }
+          // Cache the initial files
+          await this.getSaveManager().checkFilesChanged(files);
         }
 
         if (s) {
@@ -340,19 +342,23 @@ export class Emulator extends AppWrapper {
       if (res.exists) {
         const s = FS.readFile(SRAM_FILE);
         if (s) {
-          // await this.saveInOldFormat(s);
-          await this.getSaveManager().save(
-            saveStatePath,
-            [
-              {
-                name: SAVE_NAME,
-                content: s,
-              },
-            ],
-            this.saveMessageCallback,
-          );
+          const files = [
+            {
+              name: SAVE_NAME,
+              content: s,
+            },
+          ];
 
-          LOG.info('sram saved: ' + s.length);
+          if (await this.getSaveManager().checkFilesChanged(files)) {
+            // await this.saveInOldFormat(s);
+            await this.getSaveManager().save(
+              saveStatePath,
+              files,
+              this.saveMessageCallback,
+            );
+
+            LOG.info('sram saved: ' + s.length);
+          }
         }
       }
     }
