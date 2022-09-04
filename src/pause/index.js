@@ -30,7 +30,7 @@ export class EmulatorPauseScreen extends Component {
 
   render() {
     const { ADDITIONAL_BUTTON_REFS, ModeEnum } = this;
-    const { appProps, closeCallback, exitCallback, isEditor, type } =
+    const { appProps, closeCallback, exitCallback, isEditor, isStandalone, type } =
       this.props;
     const { mode } = this.state;
 
@@ -42,6 +42,7 @@ export class EmulatorPauseScreen extends Component {
             closeCallback={closeCallback}
             exitCallback={exitCallback}
             isEditor={isEditor}
+            isStandalone={isStandalone}
             additionalButtonRefs={ADDITIONAL_BUTTON_REFS}
             additionalButtons={[
               <PauseScreenButton
