@@ -1,9 +1,4 @@
-import {  
-  AppWrapper,
-  DisplayLoop,
-  LOG,
-  CIDS  
-} from "@webrcade/app-common"
+import { AppWrapper, DisplayLoop, LOG, CIDS } from '@webrcade/app-common';
 
 const CANVAS_WIDTH = 320;
 const CANVAS_HEIGHT_NTSC = 224;
@@ -22,8 +17,8 @@ const CONTROLS = {
   INPUT_RIGHT: 0x0008,
   INPUT_LEFT: 0x0004,
   INPUT_DOWN: 0x0002,
-  INPUT_UP: 0x0001
-}
+  INPUT_UP: 0x0001,
+};
 
 export class Emulator extends AppWrapper {
   constructor(app, debug = false) {
@@ -46,11 +41,12 @@ export class Emulator extends AppWrapper {
     this.pad3button = false;
   }
 
-  SRAM_FILE = "/tmp/game.srm";
+  SRAM_FILE = '/tmp/game.srm';
+  SAVE_NAME = 'sav';
 
   setRom(type, md5, bytes, pal, ym2413, smsHwType, pad3button) {
     if (bytes.byteLength === 0) {
-      throw new Error("The size is invalid (0 bytes).");
+      throw new Error('The size is invalid (0 bytes).');
     }
     this.romMd5 = md5;
     this.romBytes = bytes;
@@ -60,7 +56,7 @@ export class Emulator extends AppWrapper {
     this.smsHwType = smsHwType;
     this.pad3button = pad3button;
 
-    LOG.info("MD5: " + this.romMd5);
+    LOG.info('MD5: ' + this.romMd5);
   }
 
   async onShowPauseMenu() {
@@ -76,7 +72,8 @@ export class Emulator extends AppWrapper {
 
       if (controllers.isControlDown(i, CIDS.ESCAPE)) {
         if (this.pause(true)) {
-          controllers.waitUntilControlReleased(i, CIDS.ESCAPE)
+          controllers
+            .waitUntilControlReleased(i, CIDS.ESCAPE)
             .then(() => this.showPauseMenu());
           return;
         }
@@ -134,14 +131,14 @@ export class Emulator extends AppWrapper {
         const esmodule = window.Module;
         if (esmodule) {
           esmodule()
-            .then(gens => {
+            .then((gens) => {
               this.gens = gens;
-              gens.onAbort = msg => app.exit(msg);
+              gens.onAbort = (msg) => app.exit(msg);
               gens.onExit = () => app.exit();
               return gens;
             })
-            .then(gens => resolve(gens))
-            .catch(error => reject(error));
+            .then((gens) => resolve(gens))
+            .catch((error) => reject(error));
         } else {
           reject('An error occurred loading the Genesis Emscripten module');
         }
@@ -150,7 +147,8 @@ export class Emulator extends AppWrapper {
   }
 
   async onStart(canvas) {
-    const { app, audioChannels, gens, romBytes, romMd5, smsHwType } = this;
+    const { app, audioChannels, gens, romBytes, romMd5, smsHwType, SAVE_NAME } =
+      this;
 
     // Resize canvas based on emulator callback
     window.setCanvasSize = (w, h) => {
@@ -166,43 +164,47 @@ export class Emulator extends AppWrapper {
     this.romdata = new Uint8Array(
       gens.HEAPU8.buffer,
       gens._get_rom_buffer_ref(romBytes.byteLength),
-      romBytes.byteLength);
+      romBytes.byteLength,
+    );
     this.romdata.set(new Uint8Array(romBytes));
 
     // Determine the SMS hardware type
-    const smsHw = (
-      smsHwType === 0 ? 0x21 : 
-        smsHwType === 1 ? 0x20 : 0x10
-    );
+    const smsHw = smsHwType === 0 ? 0x21 : smsHwType === 1 ? 0x20 : 0x10;
 
-    if (this.romType === 'genplusgx-sms' ) {
-      LOG.info("SMS HW type: 0x" +  Number(smsHw).toString(16));
+    if (this.romType === 'genplusgx-sms') {
+      LOG.info('SMS HW type: 0x' + Number(smsHw).toString(16));
     }
 
     // init emulator
     gens._init_genplus(
-      this.romType === 'genplusgx-sg' ? 0x10 : (
-        (this.romType === 'genplusgx-sms' ? smsHw :
-          (this.romType === 'genplusgx-gg' ? 0x40 : 0x80))),
-      this.pal === true ? 2 : -1, /* Region */
-      this.ym2413 === true ? 1 : -1  /* YM2413*/,
-      this.pad3button === true ? 1 : -1 /* Force 3 button (genesis) */ );
+      this.romType === 'genplusgx-sg'
+        ? 0x10
+        : this.romType === 'genplusgx-sms'
+        ? smsHw
+        : this.romType === 'genplusgx-gg'
+        ? 0x40
+        : 0x80,
+      this.pal === true ? 2 : -1 /* Region */,
+      this.ym2413 === true ? 1 : -1 /* YM2413*/,
+      this.pad3button === true ? 1 : -1 /* Force 3 button (genesis) */,
+    );
 
     // Load saved state (if applicable)
-    this.saveStatePath = app.getStoragePath(`${romMd5}/sav`);
+    this.saveStatePath = app.getStoragePath(`${romMd5}/${SAVE_NAME}`);
     await this.loadState();
 
     // Determine PAL mode
     const pal = gens._is_pal();
     canvas.setAttribute('width', CANVAS_WIDTH);
-    canvas.setAttribute('height',
-      pal ? CANVAS_HEIGHT_PAL : CANVAS_HEIGHT_NTSC);
+    canvas.setAttribute('height', pal ? CANVAS_HEIGHT_PAL : CANVAS_HEIGHT_NTSC);
     this.canvasContext = canvas.getContext('2d');
     this.canvasContext.clearRect(0, 0, canvas.width, canvas.height);
     this.canvasImageData = this.canvasContext.createImageData(
-      canvas.width, canvas.height);
+      canvas.width,
+      canvas.height,
+    );
 
-    // Create display loop    
+    // Create display loop
     this.displayLoop = new DisplayLoop(pal ? 50 : 60, true, this.debug);
 
     // reset the emulator
@@ -212,20 +214,30 @@ export class Emulator extends AppWrapper {
     this.vram = new Uint8ClampedArray(
       gens.HEAPU8.buffer,
       gens._get_frame_buffer_ref(),
-      canvas.width * canvas.height * 4);
+      canvas.width * canvas.height * 4,
+    );
 
     // audio view
-    const SAMPLING_PER_FPS = (
-      (this.audioProcessor.getFrequency() /
-        this.displayLoop.getFrequency()) + 100);
+    const SAMPLING_PER_FPS =
+      this.audioProcessor.getFrequency() / this.displayLoop.getFrequency() +
+      100;
     audioChannels[0] = new Float32Array(
-      gens.HEAPF32.buffer, gens._get_web_audio_l_ref(), SAMPLING_PER_FPS);
+      gens.HEAPF32.buffer,
+      gens._get_web_audio_l_ref(),
+      SAMPLING_PER_FPS,
+    );
     audioChannels[1] = new Float32Array(
-      gens.HEAPF32.buffer, gens._get_web_audio_r_ref(), SAMPLING_PER_FPS);
+      gens.HEAPF32.buffer,
+      gens._get_web_audio_r_ref(),
+      SAMPLING_PER_FPS,
+    );
 
     // input
     this.input = new Uint16Array(
-      gens.HEAPU16.buffer, gens._get_input_buffer_ref(), GAMEPAD_API_INDEX);
+      gens.HEAPU16.buffer,
+      gens._get_input_buffer_ref(),
+      GAMEPAD_API_INDEX,
+    );
 
     // start audio processor
     this.audioProcessor.start();
@@ -234,6 +246,9 @@ export class Emulator extends AppWrapper {
     const canvasData = this.canvasImageData.data;
     const canvasContext = this.canvasContext;
     const audioProcessor = this.audioProcessor;
+
+    // Enable show message
+    this.setShowMessageEnabled(true);
 
     // Start the display loop
     this.displayLoop.start(() => {
@@ -245,19 +260,61 @@ export class Emulator extends AppWrapper {
     });
   }
 
+  async migrateSaves() {
+    const { saveStatePath, storage, SAVE_NAME } = this;
+
+    // Load old saves (if applicable)
+    const sram = await storage.get(saveStatePath);
+    if (sram) {
+      LOG.info('Migrating local saves.');
+
+      await this.getSaveManager().saveLocal(saveStatePath, [
+        {
+          name: SAVE_NAME,
+          content: sram,
+        },
+      ]);
+
+      // Delete old location (and info)
+      await storage.remove(saveStatePath);
+      await storage.remove(`${saveStatePath}/info`);
+    }
+  }
+
   async loadState() {
-    const { gens, storage, SRAM_FILE } = this;
+    const { gens, saveStatePath, SAVE_NAME, SRAM_FILE } = this;
     const FS = window.FS;
 
     try {
+      // Migrate old save format
+      await this.migrateSaves();
+
       // Create the save path (MEM FS)
       const res = FS.analyzePath(SRAM_FILE, true);
       if (!res.exists) {
-        const s = await storage.get(this.saveStatePath);
+        // Load from new save format
+        const files = await this.getSaveManager().load(
+          saveStatePath,
+          this.loadMessageCallback,
+        );
+
+        let s = null;
+        if (files) {
+          for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            if (f.name === SAVE_NAME) {
+              s = f.content;
+              break;
+            }
+          }
+          // Cache the initial files
+          await this.getSaveManager().checkFilesChanged(files);
+        }
+
         if (s) {
           FS.writeFile(SRAM_FILE, s);
           if (gens._load_sram()) {
-            LOG.info('loaded sram.')
+            LOG.info('loaded sram.');
           }
         }
       }
@@ -266,8 +323,14 @@ export class Emulator extends AppWrapper {
     }
   }
 
+  async saveInOldFormat(s) {
+    const { saveStatePath } = this;
+    // old, for testing migration
+    await this.saveStateToStorage(saveStatePath, s);
+  }
+
   async saveState() {
-    const { gens, saveStatePath, started, SRAM_FILE } = this;
+    const { gens, saveStatePath, started, SAVE_NAME, SRAM_FILE } = this;
     const FS = window.FS;
 
     if (!started) {
@@ -279,8 +342,23 @@ export class Emulator extends AppWrapper {
       if (res.exists) {
         const s = FS.readFile(SRAM_FILE);
         if (s) {
-          await this.saveStateToStorage(saveStatePath, s);
-          LOG.info('sram saved: ' + s.length)
+          const files = [
+            {
+              name: SAVE_NAME,
+              content: s,
+            },
+          ];
+
+          if (await this.getSaveManager().checkFilesChanged(files)) {
+            // await this.saveInOldFormat(s);
+            await this.getSaveManager().save(
+              saveStatePath,
+              files,
+              this.saveMessageCallback,
+            );
+
+            LOG.info('sram saved: ' + s.length);
+          }
         }
       }
     }
