@@ -6,10 +6,16 @@ import { GamepadControlsTab, KeyboardControlsTab } from './controls';
 import {
   CustomPauseScreen,
   EditorScreen,
+  GenesisBackground,
+  GameGearBackground,
+  MasterSystemBackground,
+  Sg1000Background,
   GamepadWhiteImage,
   KeyboardWhiteImage,
   PauseScreenButton,
   Resources,
+  SaveStatesEditor,
+  SaveWhiteImage,
   TEXT_IDS,
 } from '@webrcade/app-common';
 
@@ -18,21 +24,75 @@ export class EmulatorPauseScreen extends Component {
     super();
     this.state = {
       mode: this.ModeEnum.PAUSE,
+      cloudEnabled: false,
+      loaded: false
     };
   }
 
   ModeEnum = {
     PAUSE: 'pause',
     CONTROLS: 'controls',
+    STATE: 'state',
   };
 
-  ADDITIONAL_BUTTON_REFS = [React.createRef()];
+  ADDITIONAL_BUTTON_REFS = [React.createRef(), React.createRef()];
+
+  componentDidMount() {
+    const { loaded } = this.state;
+    const { emulator } = this.props;
+
+    if (!loaded) {
+      let cloudEnabled = false;
+      emulator.getSaveManager().isCloudEnabled()
+        .then(c => { cloudEnabled = c; })
+        .finally(() => {
+          this.setState({
+            loaded: true,
+            cloudEnabled: cloudEnabled
+          });
+        })
+    }
+  }
 
   render() {
     const { ADDITIONAL_BUTTON_REFS, ModeEnum } = this;
-    const { appProps, closeCallback, exitCallback, isEditor, isStandalone, type } =
+    const { appProps, closeCallback, emulator, exitCallback, isEditor, isStandalone, type } =
       this.props;
-    const { mode } = this.state;
+    const { cloudEnabled, loaded, mode } = this.state;
+
+    if (!loaded) {
+      return null;
+    }
+
+    const additionalButtons = [
+      <PauseScreenButton
+        imgSrc={GamepadWhiteImage}
+        buttonRef={ADDITIONAL_BUTTON_REFS[0]}
+        label={Resources.getText(TEXT_IDS.VIEW_CONTROLS)}
+        onHandlePad={(focusGrid, e) =>
+          focusGrid.moveFocus(e.type, ADDITIONAL_BUTTON_REFS[0])
+        }
+        onClick={() => {
+          this.setState({ mode: ModeEnum.CONTROLS });
+        }}
+      />
+    ];
+
+    if (cloudEnabled) {
+      additionalButtons.push(
+        <PauseScreenButton
+          imgSrc={SaveWhiteImage}
+          buttonRef={ADDITIONAL_BUTTON_REFS[1]}
+          label={Resources.getText(TEXT_IDS.SAVE_STATES)}
+          onHandlePad={(focusGrid, e) =>
+            focusGrid.moveFocus(e.type, ADDITIONAL_BUTTON_REFS[1])
+          }
+          onClick={() => {
+            this.setState({ mode: ModeEnum.STATE });
+          }}
+        />
+      );
+    }
 
     return (
       <>
@@ -44,19 +104,7 @@ export class EmulatorPauseScreen extends Component {
             isEditor={isEditor}
             isStandalone={isStandalone}
             additionalButtonRefs={ADDITIONAL_BUTTON_REFS}
-            additionalButtons={[
-              <PauseScreenButton
-                imgSrc={GamepadWhiteImage}
-                buttonRef={ADDITIONAL_BUTTON_REFS[0]}
-                label={Resources.getText(TEXT_IDS.VIEW_CONTROLS)}
-                onHandlePad={(focusGrid, e) =>
-                  focusGrid.moveFocus(e.type, ADDITIONAL_BUTTON_REFS[0])
-                }
-                onClick={() => {
-                  this.setState({ mode: ModeEnum.CONTROLS });
-                }}
-              />,
-            ]}
+            additionalButtons={additionalButtons}
           />
         ) : null}
         {mode === ModeEnum.CONTROLS ? (
@@ -74,6 +122,17 @@ export class EmulatorPauseScreen extends Component {
                 content: <KeyboardControlsTab type={type} />,
               },
             ]}
+          />
+        ) : null}
+        {mode === ModeEnum.STATE ? (
+          <SaveStatesEditor
+            emptyImageSrc={
+              type === 'genplusgx-sg' ? Sg1000Background :
+                type === 'genplusgx-gg' ? GameGearBackground :
+                  type === 'genplusgx-sms' ? MasterSystemBackground : GenesisBackground}
+            emulator={emulator}
+            onClose={closeCallback}
+            showStatusCallback={emulator.saveMessageCallback}
           />
         ) : null}
       </>
