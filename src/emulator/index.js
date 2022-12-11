@@ -388,10 +388,14 @@ export class Emulator extends AppWrapper {
       } catch (e) {}
 
       if (s) {
+        const props = {}
+        props.aspectRatio = `${1.333}`;
+
         await this.getSaveManager().saveState(
           this.saveStatePrefix, slot, s,
           this.canvas,
-          this.saveMessageCallback);
+          this.saveMessageCallback, null,
+          props);
       }
     } catch (e) {
       LOG.error('Error saving state: ' + e);
