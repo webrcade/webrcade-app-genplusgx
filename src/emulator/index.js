@@ -20,6 +20,8 @@ const CONTROLS = {
   INPUT_UP: 0x0001,
 };
 
+const STATE_FILE_PATH = "/state.out";
+
 export class Emulator extends AppWrapper {
   constructor(app, debug = false) {
     super(app, debug);
@@ -34,6 +36,7 @@ export class Emulator extends AppWrapper {
     this.canvasContext = null;
     this.canvasImageData = null;
     this.audioChannels = new Array(2);
+    this.saveStatePrefix = null;
     this.saveStatePath = null;
     this.pal = null;
     this.ym2413 = null;
@@ -190,7 +193,8 @@ export class Emulator extends AppWrapper {
     );
 
     // Load saved state (if applicable)
-    this.saveStatePath = app.getStoragePath(`${romMd5}/${SAVE_NAME}`);
+    this.saveStatePrefix = app.getStoragePath(`${romMd5}/`);
+    this.saveStatePath = `${this.saveStatePrefix}${SAVE_NAME}`;
     await this.loadState();
 
     // Determine PAL mode
@@ -362,5 +366,69 @@ export class Emulator extends AppWrapper {
         }
       }
     }
+  }
+
+  async getStateSlots(showStatus = true) {
+    return await this.getSaveManager().getStateSlots(
+      this.saveStatePrefix, showStatus ? this.saveMessageCallback : null
+    );
+  }
+
+  async saveStateForSlot(slot) {
+    const { gens } = this;
+
+    gens._write_state();
+
+    let s = null;
+    try {
+
+      const FS = window.FS;
+      try {
+        s = FS.readFile(STATE_FILE_PATH);
+      } catch (e) {}
+
+      if (s) {
+        const props = {}
+        props.aspectRatio = `${1.333}`;
+
+        await this.getSaveManager().saveState(
+          this.saveStatePrefix, slot, s,
+          this.canvas,
+          this.saveMessageCallback, null,
+          props);
+      }
+    } catch (e) {
+      LOG.error('Error saving state: ' + e);
+    }
+
+    return true;
+  }
+
+  async loadStateForSlot(slot) {
+    const { gens } = this;
+
+    try {
+      const state = await this.getSaveManager().loadState(
+        this.saveStatePrefix, slot, this.saveMessageCallback);
+
+      if (state) {
+        const FS = window.FS;
+        FS.writeFile(STATE_FILE_PATH, state);
+        gens._read_state();
+      }
+    } catch (e) {
+      LOG.error('Error loading state: ' + e);
+    }
+    return true;
+  }
+
+  async deleteStateForSlot(slot, showStatus = true) {
+    try {
+      await this.getSaveManager().deleteState(
+        this.saveStatePrefix, slot, showStatus ? this.saveMessageCallback : null);
+    } catch (e) {
+      LOG.error('Error deleting state: ' + e);
+    }
+    return true;
   }
 }
