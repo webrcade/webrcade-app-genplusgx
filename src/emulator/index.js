@@ -47,6 +47,10 @@ export class Emulator extends AppWrapper {
   SRAM_FILE = '/tmp/game.srm';
   SAVE_NAME = 'sav';
 
+  getDefaultAspectRatio() {
+    return 1.333;
+  }
+
   setRom(type, md5, bytes, pal, ym2413, smsHwType, pad3button) {
     if (bytes.byteLength === 0) {
       throw new Error('The size is invalid (0 bytes).');
@@ -389,7 +393,7 @@ export class Emulator extends AppWrapper {
 
       if (s) {
         const props = {}
-        props.aspectRatio = `${1.333}`;
+        props.aspectRatio = `${"" + this.getDefaultAspectRatio()}`;
 
         await this.getSaveManager().saveState(
           this.saveStatePrefix, slot, s,
