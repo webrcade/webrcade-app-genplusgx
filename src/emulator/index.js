@@ -1,4 +1,4 @@
-import { AppWrapper, DisplayLoop, LOG, CIDS } from '@webrcade/app-common';
+import { BasicAppWrapper, DisplayLoop, LOG, CIDS } from '@webrcade/app-common';
 
 const CANVAS_WIDTH = 320;
 const CANVAS_HEIGHT_NTSC = 224;
@@ -22,9 +22,13 @@ const CONTROLS = {
 
 const STATE_FILE_PATH = "/state.out";
 
-export class Emulator extends AppWrapper {
+export class Emulator extends BasicAppWrapper {
   constructor(app, debug = false) {
     super(app, debug);
+
+    // Read by the shared TouchOverlay component (webrcade-app-common) to
+    // reach the running emulator instance.
+    window.emulator = this;
 
     this.romType = null;
     this.gens = null;
@@ -69,6 +73,12 @@ export class Emulator extends AppWrapper {
   async onShowPauseMenu() {
     await this.saveState();
   }
+
+  // Base class default pauses on any tap anywhere on screen -- redundant
+  // (and disruptive) now that there's a dedicated Pause button in the
+  // touch overlay. Same override snes9x/fceux/parallel-n64/vba-m/javatari/
+  // js7800/fbneo/Coleco/A5200/Jaguar use for the same reason.
+  createTouchListener() {}
 
   pollControls() {
     const { controllers, input } = this;
@@ -264,6 +274,7 @@ export class Emulator extends AppWrapper {
       canvasContext.putImageData(this.canvasImageData, 0, 0);
       gens._tick();
       this.pollControls();
+      this.onFrame();
       audioProcessor.storeSound(audioChannels, gens._sound());
     });
   }
